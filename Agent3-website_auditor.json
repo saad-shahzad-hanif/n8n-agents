@@ -1,0 +1,183 @@
+{
+  "name": "Agent3-website_auditor",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2911741b-df00-4f38-96a8-73489712f4b4",
+      "name": "When chat message received",
+      "webhookId": "7a065d97-ae4e-4381-b61d-cfffb71861f0"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.chatInput }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "82f883fd-4f1d-4886-a9f2-1360261b7e91",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "=site_text",
+              "cssSelector": "=body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e5427c6f-c180-45f0-b85b-55ba6bda82ad",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Senior UX & Conversion Rate Expert.\nI have provided the text content of a landing page below.\n\nTarget URL: {{ $('When chat message received').item.json.chatInput }}\nWebsite Content: {{ $json.site_text }}\n\nYOUR TASK:\nAnalyze this page and generate a professional Audit Report.\n\nOUTPUT FORMAT:\nReturn the result as a raw HTML document (use inline CSS for styling). Do NOT use markdown blocks.\n\nSTRUCTURE:\n1. <h2 style=\"color:#2c3e50;\">🚀 Executive Summary</h2>\n   (2 sentences on first impression).\n2. <h2 style=\"color:#2c3e50;\">📊 Audit Score: <span style=\"color:#e67e22;\">[Score]/100</span></h2>\n   (Rate it based on Clarity, Trust, and Persuasion).\n3. <h2 style=\"color:#27ae60;\">✅ Winning Factors</h2>\n   <ul>(List 3 things they did well)</ul>\n4. <h2 style=\"color:#c0392b;\">⚠️ Critical Issues</h2>\n   <ul>(List 3 major UX or SEO errors)</ul>\n5. <h2 style=\"color:#2980b9;\">💡 Action Plan</h2>\n   <ol>(3 specific recommendations to improve conversions)</ol>",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "6a249894-dcbd-44d9-9224-5109c4eee175",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        496,
+        208
+      ],
+      "id": "af51d092-87ae-4382-bdbf-23e5c3a46824",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kk6i2u3W9JapHcx2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "saad.shahzadhanif@gmail.com",
+        "subject": "=🚀 Audit Report for: {{ $('When chat message received').item.json.chatInput }}",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        32
+      ],
+      "id": "e7159d48-883e-4c47-84a2-4e510caa72a4",
+      "name": "Send a message",
+      "webhookId": "61b7dae2-d4d2-48cc-8f84-3984b837d74f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9PRLFRZIO5JK8Asp",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f99a29bf-260a-414b-a573-0b9f14212bfa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d6def2f404e01fb591eed9f942b17e044196ffdf35ff70ad0bd3cf7a7d9d7db"
+  },
+  "id": "OAIU4mRHxhkPjxF5",
+  "tags": []
+}

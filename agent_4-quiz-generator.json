@@ -1,0 +1,364 @@
+{
+  "name": "agent_4-quiz-generator",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "allowFileUploads": true,
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -288,
+        -32
+      ],
+      "id": "49d3f6a7-661e-4956-a49d-604368726209",
+      "name": "When chat message received",
+      "webhookId": "adeb8a91-33fb-442d-b9e0-fb21501cec93"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role: You are an Expert Professor creating an exam.\n\nInput Text: {{ $json.chatInput }}\n\nTask: Create a 5-question Multiple Choice Quiz based on the text.\n\nUse Scenario-Based questions (application of knowledge), not just definitions.\n\nYou must generate TWO separate HTML documents inside a JSON object.\n\nOutput Format (Strict JSON): { \"student_html\": \"<h1>Student Quiz</h1> <p>Name: _________</p> <hr> <h3>Q1. [Scenario Question]</h3> <ul><li>A) [Option]</li><li>B) [Option]</li>...</ul>\n\n\n<h3>Q2...</h3>\", \"teacher_html\": \"<h1>Teacher Answer Key</h1> <hr> <h3>Q1. Answer: [Correct Option]</h3> <p><i>Explanation: [Why it is correct]</i></p>\n\n\n<h3>Q2...</h3>\" }\n\nConstraint: Return ONLY the JSON.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "b957408f-1d96-41f6-b6c2-3a84f7284448",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        144
+      ],
+      "id": "0fb6219f-01dc-414e-b84b-d22e47267cd6",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kk6i2u3W9JapHcx2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"student_html\": \"<h1>Student Quiz</h1> <p>Question 1...</p>\",\n  \"teacher_html\": \"<h1>Answer Key</h1> <p>Answer: A</p>\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        176
+      ],
+      "id": "459c70dd-fc55-44ac-8562-864a9cf4b2b6",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "=Quiz - {{ $now }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        272,
+        -32
+      ],
+      "id": "c8a32247-9a22-4c37-b055-0c3838f1a6ec",
+      "name": "Create folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CAMegH6Qd6I0SUGn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "Student_Quiz.html",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        880,
+        -48
+      ],
+      "id": "832d40c6-483c-40e4-9fde-0ffcb30ccc8a",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CAMegH6Qd6I0SUGn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "quiz_content",
+        "options": {
+          "fileName": "Student_Quiz.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        -32
+      ],
+      "id": "7feb5c49-2659-4114-8ea8-99d4d6ffa0d5",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44a5c182-9c80-4116-9cda-21258a0d1a67",
+              "name": "quiz_content",
+              "value": "={{ $('AI Agent').item.json.output.student_html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        -32
+      ],
+      "id": "e59a2eb5-9384-4b19-a750-28762ed8594b",
+      "name": "quiz_content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44a5c182-9c80-4116-9cda-21258a0d1a67",
+              "name": "key_content",
+              "value": "={{ $('AI Agent').item.json.output.teacher_html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        208
+      ],
+      "id": "d67e6de5-3ff4-4b68-ba15-dd9292d322ea",
+      "name": "quiz_content1"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "key_content",
+        "options": {
+          "fileName": "Answer_Key.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        192
+      ],
+      "id": "c72fcdf9-f5b9-46d4-8de5-e1fa3f3ce4c1",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "name": "Answer_Key.html",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        944,
+        208
+      ],
+      "id": "8d648e2c-940f-41c1-adcd-f1800ec339dd",
+      "name": "Upload file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CAMegH6Qd6I0SUGn",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [
+        [
+          {
+            "node": "quiz_content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "quiz_content1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "quiz_content": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "quiz_content1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "75b4e0ad-ac0f-42be-89b1-29eb67fb0d22",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d6def2f404e01fb591eed9f942b17e044196ffdf35ff70ad0bd3cf7a7d9d7db"
+  },
+  "id": "gv8jdqmAr6hJPhWZ",
+  "tags": []
+}

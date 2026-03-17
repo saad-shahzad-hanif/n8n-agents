@@ -1,0 +1,829 @@
+{
+  "name": "Agent_1-SaaS qualifier",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Company Details Form",
+        "formDescription": "hello tell us about your company please",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name?"
+            },
+            {
+              "fieldLabel": "Email"
+            },
+            {
+              "fieldLabel": "company name "
+            },
+            {
+              "fieldLabel": "budget"
+            },
+            {
+              "fieldLabel": "message",
+              "placeholder": "give detail description about your query"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7699c2ea-3105-4011-8eb7-2317e38b93a9",
+      "name": "company details",
+      "webhookId": "ad309646-616f-4fb2-ab85-058e809cd447"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this lead data:\n- Message: {{ $json.message }}\n- Budget: {{ $json.budget }}\n- Name: {{ $json['Name?'] }}\n- Email:{{ $json.Email }}\n\nYOUR TASK:\nYou are a Lead Qualification Expert. You must analyze the data and output a JSON object based on the following logic:\n\nSTEP 1: SPAM CHECK (Crucial)\n- Check the Name and Email.\n- If the email is fake (e.g., test@test.com, asdf@gmail.com), has no domain, or the name is gibberish...\n- OR if the message is empty or nonsense...\n- THEN set \"category\" to \"Spam\", \"score\" to 0, and \"email_draft\" to \"N/A\".\n\nSTEP 2: SCORING (If not Spam)\nIf the lead is real, score it based on the Budget and Message:\n- \"Hot\": High budget, clear intent.\n- \"Warm\": Medium budget or questions.\n- \"Cold\": Low budget or vague.\n\nSTEP 3: OUTPUT\nReturn the JSON with these exact fields:\n1. score: (Number 0-100)\n2. category: (String: \"Hot\", \"Warm\", \"Cold\", or \"Spam\")\n3. reason: (String: Why you chose this category)\n4. email_subject: (String: A professional subject line. Write \"N/A\" if Spam)\n5. email_draft: (String: A polite email body. Write \"N/A\" if Spam)",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d89d38b3-9185-4ccb-b3b5-4d7b01635095",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "5cfe9175-0fb6-4338-9dfe-36e37213741a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kk6i2u3W9JapHcx2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Hot",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "a9131816-bab9-48d0-920a-d58b1f1c15ff"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7648d32-ac00-4d0f-b9a4-0270cff5ea0e",
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Warm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "240de5e3-482a-4c63-b09c-4121b2182f7f",
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Cold",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "354f568d-609d-4d2f-9d8d-9bfe8502ab58",
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Spam",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        560,
+        0
+      ],
+      "id": "e4c7a6f2-d9a5-40ae-b79b-967d25dc0d6f",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('company details').item.json.Email }}",
+        "subject": "Update regarding your inquiry",
+        "message": "={{ $json.output.email_draft }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        -64
+      ],
+      "id": "3da90a69-889a-45f4-85f0-5e14a2c09baf",
+      "name": "Send a message",
+      "webhookId": "0d36bd57-5546-409f-8fa4-bec26da746a1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9PRLFRZIO5JK8Asp",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "842fed33-1762-47bd-bd74-c13b1859040b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -64
+      ],
+      "id": "f1b80201-20a0-47e3-add9-9ce974d1059c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"score\": 85,\n  \"category\": \"Hot\",\n  \"reason\": \"Budget fits and urgency is high.\",\n  \"email_subject\": \"Quick question about your project\",\n  \"email_draft\": \"Hi John, thanks for reaching out...\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        208
+      ],
+      "id": "275beb5e-2b33-452e-b80f-b59564666ecd",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc",
+          "mode": "list",
+          "cachedResultName": "SaaS qualifier",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead Name": "={{ $('company details').item.json['Name?'] }}",
+            "Lead Email": "={{ $('company details').item.json.Email }}",
+            "Company": "={{ $('company details').item.json['company name '] }}",
+            "Score": "={{ $('AI Agent').item.json.output.score }}",
+            "Category": "={{ $('AI Agent').item.json.output.category }}",
+            "Status": "sent",
+            "Date": "={{ $('company details').item.json.submittedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        -160
+      ],
+      "id": "8c83629d-ea77-4052-89aa-0adb1e1c9396",
+      "name": "successfull",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w9bCSz4ms08LQU10",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc",
+          "mode": "list",
+          "cachedResultName": "SaaS qualifier",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead Name": "={{ $('company details').item.json['Name?'] }}",
+            "Lead Email": "={{ $('company details').item.json.Email }}",
+            "Company": "={{ $('company details').item.json['company name '] }}",
+            "Score": "={{ $('AI Agent').item.json.output.score }}",
+            "Category": "={{ $('AI Agent').item.json.output.category }}",
+            "Date": "={{ $('company details').item.json.submittedAt }}",
+            "Status": "failed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        16
+      ],
+      "id": "ddbc5f0d-1cf4-48a9-b12a-424c2ea6a05d",
+      "name": "Failed query",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w9bCSz4ms08LQU10",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc",
+          "mode": "list",
+          "cachedResultName": "SaaS qualifier",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead Name": "={{ $('company details').item.json['Name?'] }}",
+            "Lead Email": "={{ $('company details').item.json.Email }}",
+            "Company": "={{ $('company details').item.json['company name '] }}",
+            "Score": "={{ $('AI Agent').item.json.output.score }}",
+            "Category": "={{ $('AI Agent').item.json.output.category }}",
+            "Date": "={{ $('company details').item.json.submittedAt }}",
+            "Status": "skipped"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        192
+      ],
+      "id": "2b6b7024-d885-4a18-906f-b016fc001b34",
+      "name": "skipped",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w9bCSz4ms08LQU10",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc",
+          "mode": "list",
+          "cachedResultName": "SaaS qualifier",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CTdk-9k5RF87hEXuPtH-uknzD_wXKKiSjuWFKckm0lc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead Name": "={{ $('company details').item.json['Name?'] }}",
+            "Lead Email": "={{ $('company details').item.json.Email }}",
+            "Company": "={{ $('company details').item.json['company name '] }}",
+            "Score": "={{ $('AI Agent').item.json.output.score }}",
+            "Category": "={{ $('AI Agent').item.json.output.category }}",
+            "Date": "={{ $('company details').item.json.submittedAt }}",
+            "Status": "Spamming"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Name",
+              "displayName": "Lead Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Email",
+              "displayName": "Lead Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        384
+      ],
+      "id": "4ce1f829-aa0d-4bab-b530-f0a80b95f59b",
+      "name": "spam leads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w9bCSz4ms08LQU10",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "company details": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "skipped",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "spam leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "successfull",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failed query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2e2d9d8a-3903-498b-b921-04f34c847143",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d6def2f404e01fb591eed9f942b17e044196ffdf35ff70ad0bd3cf7a7d9d7db"
+  },
+  "id": "Ct0HFIj9Y3npFOt4",
+  "tags": []
+}
